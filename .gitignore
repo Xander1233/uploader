@@ -1,3 +1,4 @@
 .env
 target/
 .idea/
+.DS_Store
