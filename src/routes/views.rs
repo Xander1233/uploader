@@ -1,0 +1,66 @@
+use crate::middleware::user::{get_user_via_id, User};
+use crate::util::format_upload_url::format_upload_url;
+use handlebars::Handlebars;
+use rocket::fs::{relative, NamedFile};
+use rocket::http::{ContentType, Status};
+use rocket::State;
+use serde_json::json;
+use std::path::Path;
+
+#[get("/<id>?<vt>")]
+pub async fn get_file_in_html<'r>(
+    id: &str,
+    vt: Option<String>,
+    user: Option<User>,
+    client: &State<tokio_postgres::Client>,
+    hbs: &State<Handlebars<'r>>,
+) -> Result<(ContentType, String), Status> {
+    let rows = client
+        .query("SELECT * FROM metadata md WHERE md.id = $1", &[&id])
+        .await;
+
+    if rows.is_err() {
+        return Err(Status::NotFound);
+    }
+
+    let rows = rows.unwrap();
+
+    if rows.is_empty() {
+        return Err(Status::NotFound);
+    }
+
+    let is_private: bool = rows[0].get("is_private");
+    let uid: String = rows[0].get("userid");
+
+    if is_private && (user.is_none() || user.unwrap().id != uid) {
+        return Err(Status::NotFound);
+    }
+
+    let author = get_user_via_id(&uid, client).await;
+
+    let mut file_url = format_upload_url(id);
+
+    if let Some(view_token) = vt {
+        file_url = file_url + "?vt=" + &view_token;
+    }
+
+    let rendered = hbs
+        .render(
+            "file",
+            &json!({
+                "fileid": id,
+                "username": author.username,
+                "fileurl": file_url,
+            }),
+        )
+        .unwrap();
+
+    Ok((ContentType::HTML, rendered))
+}
+
+#[get("/")]
+pub async fn index() -> Option<NamedFile> {
+    NamedFile::open(&Path::new(relative!("views")).join("index.html"))
+        .await
+        .ok()
+}
