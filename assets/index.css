@@ -1,0 +1,32 @@
+body {
+  background-color: #1f2328;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #dedede;
+}
+
+.container {
+  /* Position the container in the middle, but more to the left */
+  position: absolute;
+  left: 30%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  padding: 40px;
+  background-color: #272b34;
+}
+
+a {
+  color: #4b90e7;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease-in-out;
+  padding-bottom: 1px;
+}
+
+a:hover {
+  border-color: #4b90e7;
+}
+

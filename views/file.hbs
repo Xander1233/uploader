@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta property="og:host" content="http://localhost:8000/v/{{ fileid }}">
+	<meta property="og:site_name" content="{{ fileid }} • Uploaded by {{ username }}">
+	<meta property="og:title" content="SparkCloud File-Share">
+	<meta property="og:type" content="website">
+	<meta property="og:url" content="http://localhost:8000">
+	<meta property="twitter:card" content="summary_large_image">
+	<meta property="og:image" content="{{ fileurl }}">
+	<style>
+		body {
+			margin: 0;
+		}
+		img {
+			image-orientation: from-image;
+			text-align: center;
+			position: absolute;
+			max-width: 75%;
+			margin: auto;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			left: 0;
+		}
+	</style>
+</head>
+<body>
+	<img src="{{ fileurl }}">
+</body>
+</html>
