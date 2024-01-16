@@ -1,2 +1,2 @@
 pub mod upload_tokens;
-mod view_tokens;
+pub mod view_tokens;
