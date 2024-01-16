@@ -5,6 +5,7 @@ use crate::models::uploads::payloads::{
 };
 use crate::util::format_upload_url::format_upload_url;
 use crate::util::string_generator::generate_id;
+use bcrypt::hash;
 use rocket::form::Form;
 use rocket::http::{ContentType, Status};
 use rocket::serde::json::Json;
@@ -21,6 +22,7 @@ pub async fn upload(
     let id = generate_id();
 
     let is_private = data.private.unwrap_or(false);
+    let password = data.password.clone().unwrap();
 
     let file_path = data.file.path().unwrap();
     let mimetype = data.file.content_type().unwrap().0.to_string();
@@ -45,6 +47,17 @@ pub async fn upload(
         .query(
             "INSERT INTO metadata (id, userid, filetype, is_private) VALUES ($1, $2, $3, $4)",
             &[&id, &uploader.id, &mimetype, &is_private],
+    if !password.is_empty() {
+        let password = hash(password, 12).unwrap();
+
+        client
+            .query(
+                "UPDATE metadata SET password = $1 WHERE id = $2",
+                &[&password, &id],
+            )
+            .await
+            .unwrap();
+    }
         )
         .await
         .unwrap();
