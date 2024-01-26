@@ -19,6 +19,13 @@ pub async fn upload(
     uploader: Uploader,
     client: &State<tokio_postgres::Client>,
 ) -> Result<Json<FileUploadReturnPayload>, Status> {
+    if uploader.upload_token.max_uses.is_some()
+        && uploader.upload_token.uses + 1 > uploader.upload_token.max_uses.unwrap()
+    {
+        // TODO delete token
+        return Err(Status::Unauthorized);
+    }
+
     let id = generate_id();
 
     let is_private = data.private.unwrap_or(false);
@@ -38,7 +45,7 @@ pub async fn upload(
     client
         .query(
             "INSERT INTO files (id, userid, data) VALUES ($1, $2, $3)",
-            &[&id, &uploader.id, &bytes],
+            &[&id, &uploader.user.id, &bytes],
         )
         .await
         .unwrap();
@@ -46,7 +53,11 @@ pub async fn upload(
     client
         .query(
             "INSERT INTO metadata (id, userid, filetype, is_private) VALUES ($1, $2, $3, $4)",
-            &[&id, &uploader.id, &mimetype, &is_private],
+            &[&id, &uploader.user.id, &mimetype, &is_private],
+        )
+        .await
+        .unwrap();
+
     if !password.is_empty() {
         let password = hash(password, 12).unwrap();
 
@@ -58,6 +69,12 @@ pub async fn upload(
             .await
             .unwrap();
     }
+
+    let usage_id = generate_id();
+    client
+        .query(
+            "INSERT INTO upload_token_uses (id, tokenid, fileid, userid) VALUES ($1, $2, $3, $4)",
+            &[&usage_id, &uploader.upload_token.id, &id, &uploader.user.id],
         )
         .await
         .unwrap();

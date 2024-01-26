@@ -16,7 +16,20 @@ pub async fn create_upload_token(
     client: &State<Client>,
 ) -> Result<Json<CreateUploadTokenReturnPayload>, Status> {
     let name = &data.name;
-    let description = &data.description;
+    let description = data.description.as_ref().unwrap_or("".to_string());
+    let max_uses = &data.max_uses;
+
+    if name.len() > 32 {
+        return Err(Status::BadRequest);
+    }
+
+    if description.len() > 256 {
+        return Err(Status::BadRequest);
+    }
+
+    if max_uses.is_some() && (max_uses.unwrap() > 65536) {
+        return Err(Status::BadRequest);
+    }
 
     let duplicate_check_result = client
         .query(
@@ -38,10 +51,12 @@ pub async fn create_upload_token(
     let token_id = generate_id();
     let token = generate_string(Some(48));
 
+    let max_uses = max_uses.unwrap_or(0);
+
     let create_token_result = client
         .query(
-            "INSERT INTO upload_tokens (id, userid, token, name, description) VALUES ($1, $2, $3, $4, $5)",
-            &[&token_id, &user.id, &token, &name, &description],
+            "INSERT INTO upload_tokens (id, userid, token, name, description, max_uses) VALUES ($1, $2, $3, $4, $5, $6)",
+            &[&token_id, &user.id, &token, &name, &description, &max_uses],
         )
         .await;
 
@@ -138,6 +153,7 @@ pub async fn get_upload_tokens(
         let token_id: String = row.get("id");
         let name: String = row.get("name");
         let description: Option<String> = row.get("description");
+        let max_uses: Option<u32> = row.get("max_uses");
 
         tokens.push(UploadTokens {
             token_id,

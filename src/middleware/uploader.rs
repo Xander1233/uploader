@@ -3,13 +3,29 @@ use rocket::request::{FromRequest, Outcome};
 use rocket::Request;
 
 #[derive(Debug)]
-pub struct Uploader {
+pub struct User {
     pub id: String,
     pub auth: Option<String>,
     pub username: String,
     pub display_name: String,
     pub email: String,
     pub permission_level: i32,
+}
+
+#[derive(Debug)]
+pub struct UploadToken {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub max_uses: Option<u32>,
+    pub uses: u32,
+    pub token: String,
+}
+
+#[derive(Debug)]
+pub struct Uploader {
+    pub user: User,
+    pub upload_token: UploadToken,
 }
 
 #[rocket::async_trait]
@@ -38,7 +54,7 @@ impl<'r> FromRequest<'r> for Uploader {
 
         let rows = client
             .query(
-                "SELECT u.* FROM upload_tokens t LEFT JOIN users u ON u.id = t.userid WHERE t.token = $1",
+                "SELECT u.id userid, u.username username, u.display_name display_name, u.email email, u.permission_level permission_level, t.id token_id, t.name token_name, t.description token_description, t.max_uses token_max_uses, t.uses token_uses FROM upload_tokens t LEFT JOIN users u ON u.id = t.userid WHERE t.token = $1",
                 &[&auth_header],
             )
             .await
@@ -51,19 +67,35 @@ impl<'r> FromRequest<'r> for Uploader {
             ));
         }
 
-        let id: String = rows[0].get("id");
+        let userid: String = rows[0].get("userid");
         let username: String = rows[0].get("username");
         let display_name: String = rows[0].get("display_name");
         let email: String = rows[0].get("email");
         let permission_level: i32 = rows[0].get("permission_level");
 
+        let token_id: String = rows[0].get("token_id");
+        let token_name: String = rows[0].get("token_name");
+        let token_desc: Option<String> = rows[0].get("token_description");
+        let token_max_uses: Option<u32> = rows[0].get("token_max_uses");
+        let token_uses: u32 = rows[0].get("token_uses");
+
         Outcome::Success(Uploader {
-            id,
-            auth: Some(auth_header.to_string()),
-            username,
-            display_name,
-            email,
-            permission_level,
+            user: User {
+                id: userid,
+                auth: None,
+                username,
+                display_name,
+                email,
+                permission_level,
+            },
+            upload_token: UploadToken {
+                id: token_id,
+                token: auth_header.to_string(),
+                name: token_name,
+                description: token_desc,
+                max_uses: token_max_uses,
+                uses: token_uses,
+            },
         })
     }
 }
