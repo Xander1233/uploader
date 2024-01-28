@@ -10,6 +10,10 @@ pub async fn preflight(client: &Client) {
         permission_level int NOT NULL DEFAULT 0, \
         display_name text NOT NULL, \
         email text NOT NULL, \
+        total_views int NOT NULL DEFAULT 0, \
+        total_uploads int NOT NULL DEFAULT 0, \
+        storage_used int NOT NULL DEFAULT 0, \
+        max_storage int NOT NULL DEFAULT 2147483648, \
         created_at TIMESTAMP NOT NULL DEFAULT NOW() \
     )",
             &[],
