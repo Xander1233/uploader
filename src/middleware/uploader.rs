@@ -10,10 +10,10 @@ pub struct User {
     pub display_name: String,
     pub email: String,
     pub permission_level: i32,
-    total_views: i32,
-    total_uploads: i32,
-    storage_used: i32,
-    max_storage: i32,
+    pub total_views: i32,
+    pub total_uploads: i32,
+    pub storage_used: i32,
+    pub max_storage: i32,
 }
 
 #[derive(Debug)]
