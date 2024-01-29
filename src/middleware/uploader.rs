@@ -10,6 +10,10 @@ pub struct User {
     pub display_name: String,
     pub email: String,
     pub permission_level: i32,
+    total_views: i32,
+    total_uploads: i32,
+    storage_used: i32,
+    max_storage: i32,
 }
 
 #[derive(Debug)]
@@ -54,7 +58,7 @@ impl<'r> FromRequest<'r> for Uploader {
 
         let rows = client
             .query(
-                "SELECT u.id userid, u.username username, u.display_name display_name, u.email email, u.permission_level permission_level, t.id token_id, t.name token_name, t.description token_description, t.max_uses token_max_uses, t.uses token_uses FROM upload_tokens t LEFT JOIN users u ON u.id = t.userid WHERE t.token = $1",
+                "SELECT u.id userid, u.username username, u.display_name display_name, u.email email, u.permission_level permission_level, u.total_views total_views, u.total_uploads total_uploads, u.storage_used storage_used, u.max_storage max_storage, t.id token_id, t.name token_name, t.description token_description, t.max_uses token_max_uses, t.uses token_uses FROM upload_tokens t LEFT JOIN users u ON u.id = t.userid WHERE t.token = $1",
                 &[&auth_header],
             )
             .await
@@ -72,6 +76,10 @@ impl<'r> FromRequest<'r> for Uploader {
         let display_name: String = rows[0].get("display_name");
         let email: String = rows[0].get("email");
         let permission_level: i32 = rows[0].get("permission_level");
+        let total_views: i32 = rows[0].get("total_views");
+        let total_uploads: i32 = rows[0].get("total_uploads");
+        let storage_used: i32 = rows[0].get("storage_used");
+        let max_storage: i32 = rows[0].get("max_storage");
 
         let token_id: String = rows[0].get("token_id");
         let token_name: String = rows[0].get("token_name");
@@ -87,6 +95,10 @@ impl<'r> FromRequest<'r> for Uploader {
                 display_name,
                 email,
                 permission_level,
+                total_views,
+                total_uploads,
+                storage_used,
+                max_storage,
             },
             upload_token: UploadToken {
                 id: token_id,
