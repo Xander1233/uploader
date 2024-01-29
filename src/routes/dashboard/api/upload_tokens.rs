@@ -16,7 +16,7 @@ pub async fn create_upload_token(
     client: &State<Client>,
 ) -> Result<Json<CreateUploadTokenReturnPayload>, Status> {
     let name = &data.name;
-    let description = data.description.as_ref().unwrap_or("".to_string());
+    let description = data.description.clone().unwrap_or("".to_string());
     let max_uses = &data.max_uses;
 
     if name.len() > 32 {
@@ -159,6 +159,7 @@ pub async fn get_upload_tokens(
             token_id,
             name,
             description,
+            max_uses,
         });
     }
 

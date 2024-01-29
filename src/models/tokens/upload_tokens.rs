@@ -40,4 +40,5 @@ pub struct UploadTokens {
     pub token_id: String,
     pub name: String,
     pub description: Option<String>,
+    pub max_uses: Option<u32>,
 }
