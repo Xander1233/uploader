@@ -6,6 +6,7 @@ use crate::models::uploads::payloads::{
 use crate::util::format_upload_url::format_upload_url;
 use crate::util::string_generator::generate_id;
 use bcrypt::hash;
+use rocket::data::ToByteUnit;
 use rocket::form::Form;
 use rocket::http::{ContentType, Status};
 use rocket::serde::json::Json;
@@ -35,6 +36,17 @@ pub async fn upload(
     let mimetype = data.file.content_type().unwrap().0.to_string();
 
     let mut file = std::fs::File::open(file_path).unwrap();
+    let size = file.metadata().unwrap().len();
+
+    if size > 10.mebibytes().as_u64() {
+        return Err(Status::BadRequest);
+    }
+
+    // Postgres doesn't support unsigned integers
+    if uploader.user.storage_used + (size as i32) > uploader.user.max_storage {
+        return Err(Status::BadRequest);
+    }
+
     let mut bytes = Vec::new();
 
     file.read_to_end(&mut bytes).unwrap();
@@ -78,6 +90,11 @@ pub async fn upload(
         )
         .await
         .unwrap();
+
+    let _ = client.query(
+        "UPDATE users SET storage_used = storage_used + $1, total_uploads = total_uploads + 1 WHERE id = $3",
+        &[&(size as i32), &1 as &i32, &uploader.user.id]
+    ).await;
 
     Ok(Json(FileUploadReturnPayload {
         id: id.clone(),
@@ -138,8 +155,23 @@ pub async fn get_file(
         }
     }
 
-    if is_private && (user.is_none() || user.unwrap().id != uid) {
+    let current_user_id = if user.is_none() {
+        "".to_string()
+    } else {
+        user.unwrap().id
+    };
+
+    if is_private && current_user_id != uid {
         return Err(Status::NotFound);
+    }
+
+    if current_user_id != uid {
+        let _ = client
+            .query(
+                "UPDATE users SET total_views = total_views + 1 WHERE id = $1",
+                &[&uid],
+            )
+            .await;
     }
 
     Ok((
