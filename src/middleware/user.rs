@@ -7,9 +7,13 @@ pub struct User {
     pub id: String,
     pub auth: Option<String>,
     pub username: String,
+    pub permission_level: i32,
     pub display_name: String,
     pub email: String,
-    pub permission_level: i32,
+    pub total_views: i32,
+    pub total_uploads: i32,
+    pub storage_used: i32,
+    pub max_storage: i32,
 }
 
 #[rocket::async_trait]
@@ -53,6 +57,10 @@ impl<'r> FromRequest<'r> for User {
         let display_name: String = rows[0].get("display_name");
         let email: String = rows[0].get("email");
         let permission_level: i32 = rows[0].get("permission_level");
+        let total_views: i32 = rows[0].get("total_views");
+        let total_uploads: i32 = rows[0].get("total_uploads");
+        let storage_used: i32 = rows[0].get("storage_used");
+        let max_storage: i32 = rows[0].get("max_storage");
 
         Outcome::Success(User {
             id,
@@ -61,6 +69,10 @@ impl<'r> FromRequest<'r> for User {
             display_name,
             email,
             permission_level,
+            total_views,
+            total_uploads,
+            storage_used,
+            max_storage,
         })
     }
 }
@@ -76,6 +88,10 @@ pub async fn get_user_via_id(id: &str, client: &State<tokio_postgres::Client>) -
     let display_name: String = rows[0].get("display_name");
     let email: String = rows[0].get("email");
     let permission_level: i32 = rows[0].get("permission_level");
+    let total_views: i32 = rows[0].get("total_views");
+    let total_uploads: i32 = rows[0].get("total_uploads");
+    let storage_used: i32 = rows[0].get("storage_used");
+    let max_storage: i32 = rows[0].get("max_storage");
 
     User {
         id,
@@ -84,5 +100,9 @@ pub async fn get_user_via_id(id: &str, client: &State<tokio_postgres::Client>) -
         display_name,
         email,
         permission_level,
+        total_views,
+        total_uploads,
+        storage_used,
+        max_storage,
     }
 }
