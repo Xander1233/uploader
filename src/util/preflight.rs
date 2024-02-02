@@ -1,6 +1,42 @@
+use crate::config::settings::Settings;
 use tokio_postgres::Client;
 
-pub async fn preflight(client: &Client) {
+pub async fn preflight(client: &Client, settings: &Settings) {
+    if !settings.general.is_prod && settings.database.clear {
+        client
+            .query("DROP TABLE IF EXISTS users CASCADE", &[])
+            .await
+            .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS sessions CASCADE", &[])
+            .await
+            .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS files CASCADE", &[])
+            .await
+            .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS metadata CASCADE", &[])
+            .await
+            .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS view_tokens CASCADE", &[])
+            .await
+            .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS events CASCADE", &[])
+            .await
+            .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS upload_tokens CASCADE", &[])
+            .await
+            .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS upload_token_uses CASCADE", &[])
+            .await
+            .unwrap();
+    }
+
     client
         .query(
             "CREATE TABLE IF NOT EXISTS users ( \
@@ -13,7 +49,7 @@ pub async fn preflight(client: &Client) {
         total_views int NOT NULL DEFAULT 0, \
         total_uploads int NOT NULL DEFAULT 0, \
         storage_used int NOT NULL DEFAULT 0, \
-        max_storage int NOT NULL DEFAULT 2147483648, \
+        max_storage int NOT NULL DEFAULT 1000000000, \
         created_at TIMESTAMP NOT NULL DEFAULT NOW() \
     )",
             &[],

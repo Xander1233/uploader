@@ -9,6 +9,7 @@ pub struct Database {
     pub user: String,
     pub password: String,
     pub dbname: String,
+    pub clear: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -26,6 +27,7 @@ pub struct Email {
 #[allow(unused)]
 pub struct GeneralSettings {
     pub base_url: String,
+    pub is_prod: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
