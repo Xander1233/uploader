@@ -41,6 +41,8 @@ async fn main() -> Result<(), Error> {
     tokio::spawn(async move {
         if let Err(e) = connection.await {
             eprintln!("connection error: {}", e);
+        } else {
+            println!("connection successful");
         }
     });
 

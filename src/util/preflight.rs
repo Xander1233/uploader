@@ -59,6 +59,7 @@ pub async fn preflight(client: &Client) {
         is_private boolean, \
         password text DEFAULT '', \
         uploaded_at TIMESTAMP NOT NULL DEFAULT NOW(), \
+        views int DEFAULT 0, \
         CONSTRAINT fk_id \
             FOREIGN KEY (id) \
                 REFERENCES files(id) ON DELETE CASCADE, \
