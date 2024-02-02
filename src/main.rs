@@ -46,7 +46,7 @@ async fn main() -> Result<(), Error> {
         }
     });
 
-    preflight(&pg_client).await;
+    preflight(&pg_client, &settings).await;
 
     let notification_manager = NotificationManager::new(settings.clone());
 
