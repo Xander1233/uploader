@@ -24,7 +24,6 @@ COPY --from=builder /app/target/release/uploader uploader
 
 COPY ./assets ./assets
 COPY ./views ./views
-COPY ./Rocket.toml ./Rocket.toml
 
 ENV APP_ENVIRONMENT=production
 
