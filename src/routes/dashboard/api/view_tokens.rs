@@ -1,9 +1,11 @@
 use crate::config::settings::Settings;
+use crate::middleware::Ip::Ip;
 use crate::models::tokens::view_tokens::{CreateViewTokenPayload, CreateViewTokenReturnPayload};
 use crate::util::string_generator::{generate_id, generate_string};
-use bcrypt::verify;
+use bcrypt::{hash, verify};
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use rocket::yansi::Paint;
 use rocket::State;
 use tokio_postgres::Client;
 
@@ -11,6 +13,7 @@ use tokio_postgres::Client;
 pub async fn create_view_token(
     id: &str,
     data: Json<CreateViewTokenPayload>,
+    ip: Ip,
     client: &State<Client>,
     settings: &State<Settings>,
 ) -> Result<Json<CreateViewTokenReturnPayload>, Status> {
@@ -41,10 +44,14 @@ pub async fn create_view_token(
     let token_id = generate_id();
     let token = generate_string(Some(64));
 
+    let ip = ip.0;
+
+    let ip = hash(ip.to_string(), 10).unwrap();
+
     let create_token_result = client
         .query(
-            "INSERT INTO view_tokens (id, fileid, token) VALUES ($1, $2, $3)",
-            &[&token_id, &id, &token],
+            "INSERT INTO view_tokens (id, fileid, token, ip) VALUES ($1, $2, $3, $4)",
+            &[&token_id, &id, &token, &ip],
         )
         .await;
 

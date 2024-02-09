@@ -1,6 +1,7 @@
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use rocket::Request;
+use std::net::IpAddr;
 
 #[derive(Debug)]
 pub struct User {
@@ -14,6 +15,7 @@ pub struct User {
     pub total_uploads: i32,
     pub storage_used: i32,
     pub max_storage: i32,
+    pub ip: Option<IpAddr>,
 }
 
 #[derive(Debug)]
@@ -87,6 +89,8 @@ impl<'r> FromRequest<'r> for Uploader {
         let token_max_uses: Option<u32> = rows[0].get("token_max_uses");
         let token_uses: u32 = rows[0].get("token_uses");
 
+        let ip = request.client_ip();
+
         Outcome::Success(Uploader {
             user: User {
                 id: userid,
@@ -99,6 +103,7 @@ impl<'r> FromRequest<'r> for Uploader {
                 total_uploads,
                 storage_used,
                 max_storage,
+                ip,
             },
             upload_token: UploadToken {
                 id: token_id,

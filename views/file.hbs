@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<meta property="og:host" content="http://localhost:8000/v/{{ fileid }}">
+	<meta property="og:host" content="{{ fileurl }}">
 	<meta property="og:site_name" content="{{ fileid }} • Uploaded by {{ username }}">
 	<meta property="og:title" content="SparkCloud File-Share">
 	<meta property="og:type" content="website">
-	<meta property="og:url" content="http://localhost:8000">
+	<meta property="og:url" content="{{ fileurl }}">
 	<meta property="twitter:card" content="summary_large_image">
 	<meta property="og:image" content="{{ fileurl }}">
 	<style>
@@ -24,8 +24,9 @@
 			left: 0;
 		}
 	</style>
+    <title>{{ fileid }} • Uploaded by {{ username }}</title>
 </head>
 <body>
-	<img src="{{ fileurl }}">
+	<img src="{{ fileurl }}" alt="{{ fileid }} • Uploaded by {{ username }}">
 </body>
 </html>

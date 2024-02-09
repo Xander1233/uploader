@@ -112,6 +112,7 @@ pub async fn preflight(client: &Client, settings: &Settings) {
         id text PRIMARY KEY, \
         fileid text, \
         token text, \
+        ip text, \
         created_at TIMESTAMP NOT NULL DEFAULT NOW(), \
         CONSTRAINT fk_fileid \
             FOREIGN KEY (fileid) \

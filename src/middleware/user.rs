@@ -1,6 +1,7 @@
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use rocket::{Request, State};
+use std::net::IpAddr;
 
 #[derive(Debug)]
 pub struct User {
@@ -14,6 +15,7 @@ pub struct User {
     pub total_uploads: i32,
     pub storage_used: i32,
     pub max_storage: i32,
+    pub ip: Option<IpAddr>,
 }
 
 #[rocket::async_trait]
@@ -62,6 +64,8 @@ impl<'r> FromRequest<'r> for User {
         let storage_used: i32 = rows[0].get("storage_used");
         let max_storage: i32 = rows[0].get("max_storage");
 
+        let ip = request.client_ip();
+
         Outcome::Success(User {
             id,
             auth: Some(auth_header.to_string()),
@@ -73,6 +77,7 @@ impl<'r> FromRequest<'r> for User {
             total_uploads,
             storage_used,
             max_storage,
+            ip,
         })
     }
 }
@@ -104,5 +109,6 @@ pub async fn get_user_via_id(id: &str, client: &State<tokio_postgres::Client>) -
         total_uploads,
         storage_used,
         max_storage,
+        ip: None,
     }
 }
