@@ -30,7 +30,7 @@ pub async fn upload(
     let id = generate_id();
 
     let is_private = data.private.unwrap_or(false);
-    let password = data.password.clone().unwrap();
+    let password = data.password.clone();
 
     let file_path = data.file.path().unwrap();
     let mimetype = data.file.content_type().unwrap().0.to_string();
@@ -70,16 +70,18 @@ pub async fn upload(
         .await
         .unwrap();
 
-    if !password.is_empty() {
-        let password = hash(password, 12).unwrap();
+    if let Some(password) = password {
+        if !password.is_empty() {
+            let password = hash(password, 12).unwrap();
 
-        client
-            .query(
-                "UPDATE metadata SET password = $1 WHERE id = $2",
-                &[&password, &id],
-            )
-            .await
-            .unwrap();
+            client
+                .query(
+                    "UPDATE metadata SET password = $1 WHERE id = $2",
+                    &[&password, &id],
+                )
+                .await
+                .unwrap();
+        }
     }
 
     let usage_id = generate_id();

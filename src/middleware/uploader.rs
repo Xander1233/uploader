@@ -23,8 +23,8 @@ pub struct UploadToken {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
-    pub max_uses: Option<u32>,
-    pub uses: u32,
+    pub max_uses: Option<i32>,
+    pub uses: i32,
     pub token: String,
 }
 
@@ -63,8 +63,14 @@ impl<'r> FromRequest<'r> for Uploader {
                 "SELECT u.id userid, u.username username, u.display_name display_name, u.email email, u.permission_level permission_level, u.total_views total_views, u.total_uploads total_uploads, u.storage_used storage_used, u.max_storage max_storage, t.id token_id, t.name token_name, t.description token_description, t.max_uses token_max_uses, t.uses token_uses FROM upload_tokens t LEFT JOIN users u ON u.id = t.userid WHERE t.token = $1",
                 &[&auth_header],
             )
-            .await
-            .unwrap();
+            .await;
+
+        if rows.is_err() {
+            println!("Error: {:?}", rows.err().unwrap());
+            return Outcome::Error((Status::InternalServerError, "Database error".to_string()));
+        }
+
+        let rows = rows.unwrap();
 
         if rows.len() != 1 {
             return Outcome::Error((
@@ -86,8 +92,8 @@ impl<'r> FromRequest<'r> for Uploader {
         let token_id: String = rows[0].get("token_id");
         let token_name: String = rows[0].get("token_name");
         let token_desc: Option<String> = rows[0].get("token_description");
-        let token_max_uses: Option<u32> = rows[0].get("token_max_uses");
-        let token_uses: u32 = rows[0].get("token_uses");
+        let token_max_uses: Option<i32> = rows[0].get("token_max_uses");
+        let token_uses: i32 = rows[0].get("token_uses");
 
         let ip = request.client_ip();
 

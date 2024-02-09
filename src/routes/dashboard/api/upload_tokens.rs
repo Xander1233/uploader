@@ -61,6 +61,7 @@ pub async fn create_upload_token(
         .await;
 
     if create_token_result.is_err() {
+        println!("{:?}", create_token_result);
         return Err(Status::InternalServerError);
     }
 

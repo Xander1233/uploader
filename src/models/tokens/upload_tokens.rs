@@ -18,7 +18,7 @@ pub struct RegenerateTokenReturnPayload {
 pub struct CreateUploadTokenPayload {
     pub name: String,
     pub description: Option<String>,
-    pub max_uses: Option<u32>,
+    pub max_uses: Option<i32>,
 }
 
 #[derive(Deserialize, Serialize)]

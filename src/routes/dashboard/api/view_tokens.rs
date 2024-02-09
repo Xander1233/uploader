@@ -1,5 +1,5 @@
 use crate::config::settings::Settings;
-use crate::middleware::Ip::Ip;
+use crate::middleware::ip::Ip;
 use crate::models::tokens::view_tokens::{CreateViewTokenPayload, CreateViewTokenReturnPayload};
 use crate::util::string_generator::{generate_id, generate_string};
 use bcrypt::{hash, verify};
