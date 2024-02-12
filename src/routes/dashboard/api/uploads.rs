@@ -1,3 +1,4 @@
+use crate::middleware::ip::Ip;
 use crate::middleware::uploader::Uploader;
 use crate::middleware::user::User;
 use crate::models::uploads::payloads::{
@@ -5,7 +6,7 @@ use crate::models::uploads::payloads::{
 };
 use crate::util::format_upload_url::format_upload_url;
 use crate::util::string_generator::generate_id;
-use bcrypt::hash;
+use bcrypt::{hash, verify};
 use rocket::data::ToByteUnit;
 use rocket::form::Form;
 use rocket::http::{ContentType, Status};
@@ -109,6 +110,7 @@ pub async fn get_file(
     id: &str,
     vt: Option<String>,
     user: Option<User>,
+    ip: Option<Ip>,
     client: &State<tokio_postgres::Client>,
 ) -> Result<(ContentType, Vec<u8>), Status> {
     let rows = client
@@ -116,8 +118,14 @@ pub async fn get_file(
             "SELECT * FROM files f LEFT JOIN metadata md ON md.id = f.id WHERE f.id = $1",
             &[&id],
         )
-        .await
-        .unwrap();
+        .await;
+
+    if rows.is_err() {
+        println!("{:?}", rows.err().unwrap());
+        return Err(Status::NotFound);
+    }
+
+    let rows = rows.unwrap();
 
     let mimetype: String = rows[0].get("filetype");
     let bytes: Vec<u8> = rows[0].get("data");
@@ -134,11 +142,17 @@ pub async fn get_file(
 
         let rows = client
             .query(
-                "SELECT * FROM viewtokens WHERE token = $1 AND fileid = $2",
+                "SELECT * FROM view_tokens WHERE token = $1 AND fileid = $2",
                 &[&vt, &id],
             )
-            .await
-            .unwrap();
+            .await;
+
+        if rows.is_err() {
+            println!("{:?}", rows.err().unwrap());
+            return Err(Status::Unauthorized);
+        }
+
+        let rows = rows.unwrap();
 
         if rows.len() != 1 {
             return Err(Status::Unauthorized);
@@ -150,9 +164,12 @@ pub async fn get_file(
             return Err(Status::Unauthorized);
         }
 
-        let userid: String = rows[0].get("userid");
+        let ip: String = ip.unwrap().0.to_string();
+        let db_ip: String = rows[0].get("ip");
 
-        if userid != uid {
+        let ip_verification = verify(ip, db_ip.as_str());
+
+        if ip_verification.is_err() || !ip_verification.unwrap() {
             return Err(Status::Unauthorized);
         }
     }

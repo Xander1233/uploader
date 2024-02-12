@@ -40,8 +40,10 @@ pub async fn get_file_in_html<'r>(
 
     let mut file_url = format_upload_url(id);
 
-    if let Some(view_token) = vt {
-        file_url = file_url + "?vt=" + &view_token;
+    println!("{:?}  {:?}", vt, file_url);
+
+    if vt.is_some() {
+        file_url = file_url + "?vt=" + &vt.unwrap();
     }
 
     let rendered = hbs
@@ -51,6 +53,7 @@ pub async fn get_file_in_html<'r>(
                 "fileid": id,
                 "username": author.username,
                 "fileurl": file_url,
+                "plain_fileurl": file_url
             }),
         )
         .unwrap();

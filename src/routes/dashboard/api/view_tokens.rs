@@ -5,7 +5,6 @@ use crate::util::string_generator::{generate_id, generate_string};
 use bcrypt::{hash, verify};
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::yansi::Paint;
 use rocket::State;
 use tokio_postgres::Client;
 
@@ -20,7 +19,7 @@ pub async fn create_view_token(
     let password = &data.password;
 
     let file = client
-        .query("SELECT * FROM files WHERE id = $1", &[&id])
+        .query("SELECT * FROM metadata WHERE id = $1", &[&id])
         .await;
 
     if file.is_err() {
@@ -37,7 +36,9 @@ pub async fn create_view_token(
 
     let file_password: String = file.get("password");
 
-    if verify(password, file_password.as_str()).is_err() {
+    let password_verification = verify(password, file_password.as_str());
+
+    if password_verification.is_err() || !password_verification.unwrap() {
         return Err(Status::Unauthorized);
     }
 

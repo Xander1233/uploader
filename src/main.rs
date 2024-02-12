@@ -24,6 +24,7 @@ use crate::routes::dashboard::api::upload_tokens::{
     create_upload_token, delete_upload_token, get_upload_tokens, regenerate_upload_token,
 };
 use crate::routes::dashboard::api::uploads::{get_all_uploads_of_current, get_file, upload};
+use crate::routes::dashboard::api::view_tokens::create_view_token;
 use rocket::{fairing::AdHoc, fs::FileServer};
 use tokio_postgres::Error;
 
@@ -72,6 +73,7 @@ async fn main() -> Result<(), Error> {
             "/api/account",
             routes![create_account, edit_account, change_password, get_profile],
         )
+        .mount("/api/view", routes![create_view_token])
         .attach(AdHoc::try_on_ignite(
             "Settings Configuration",
             |rocket| async { Ok(rocket.manage(settings)) },
