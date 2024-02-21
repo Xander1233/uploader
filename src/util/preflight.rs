@@ -179,4 +179,19 @@ pub async fn preflight(client: &Client, settings: &Settings) {
         )
         .await
         .unwrap();
+
+    client
+        .query(
+            "CREATE TABLE IF NOT EXISTS embed_config ( \
+        userid text PRIMARY KEY, \
+        title text DEFAULT 'SparkCloud File-CDN', \
+        color text DEFAULT '#4b90e7', \
+        CONSTRAINT fk_userid \
+            FOREIGN KEY (userid) \
+                REFERENCES users(id) ON DELETE CASCADE \
+        )",
+            &[],
+        )
+        .await
+        .unwrap();
 }

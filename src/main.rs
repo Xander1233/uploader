@@ -6,6 +6,14 @@ mod models;
 mod routes;
 mod util;
 
+use crate::email::notification_manager::NotificationManager;
+use crate::routes::auth::check_auth;
+use crate::routes::dashboard::api::account::{change_password, create_account, get_profile};
+use crate::routes::dashboard::api::upload_tokens::{
+    create_upload_token, delete_upload_token, get_upload_tokens, regenerate_upload_token,
+};
+use crate::routes::dashboard::api::uploads::{get_all_uploads_of_current, get_file, upload};
+use crate::routes::dashboard::api::view_tokens::create_view_token;
 use crate::{
     config::settings::Settings,
     database::postgres::database_pg::connect_pg,
@@ -17,14 +25,6 @@ use crate::{
     util::{errors::default_catch, initialize_handlebars::init_handlebars, preflight::preflight},
 };
 
-use crate::email::notification_manager::NotificationManager;
-use crate::routes::auth::check_auth;
-use crate::routes::dashboard::api::account::{change_password, create_account, get_profile};
-use crate::routes::dashboard::api::upload_tokens::{
-    create_upload_token, delete_upload_token, get_upload_tokens, regenerate_upload_token,
-};
-use crate::routes::dashboard::api::uploads::{get_all_uploads_of_current, get_file, upload};
-use crate::routes::dashboard::api::view_tokens::create_view_token;
 use rocket::{fairing::AdHoc, fs::FileServer};
 use tokio_postgres::Error;
 

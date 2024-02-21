@@ -24,6 +24,13 @@ pub struct EditAccountPayload {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
+pub struct EditEmbedConfigPayload {
+    pub title: Option<String>,
+    pub color: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub struct ChangePasswordPayload {
     pub old_password: String,
     pub new_password: String,
