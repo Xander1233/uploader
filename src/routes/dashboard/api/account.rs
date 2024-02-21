@@ -1,7 +1,7 @@
 use crate::middleware::user::User;
 use crate::models::auth::payloads::{
-    ChangePasswordPayload, CreateUserReturnPayload, EditAccountPayload, ProfileReturnPayload,
-    RegisterPayload,
+    ChangePasswordPayload, CreateUserReturnPayload, EditAccountPayload, EditEmbedConfigPayload,
+    ProfileReturnPayload, RegisterPayload,
 };
 use crate::util::errors::ErrorResponse;
 use crate::util::string_generator::generate_id;
@@ -10,6 +10,7 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
 use tokio_postgres::Client;
+use crate::util::verify_hex_color::verify_hex_color;
 
 #[get("/profile")]
 pub async fn get_profile(user: User) -> Option<Json<ProfileReturnPayload>> {
@@ -62,6 +63,14 @@ pub async fn create_account(
             "INSERT INTO users (id, username, password, email, display_name) VALUES ($1, $2, $3, $4, $5)",
             &[&id, &username, &hash, &email, &display_name],
         )
+        .await;
+
+    if result.is_err() {
+        return Err(Status::InternalServerError);
+    }
+
+    let result = client
+        .query("INSERT INTO embed_config (userid) VALUES ($1)", &[&id])
         .await;
 
     if result.is_err() {
@@ -162,3 +171,65 @@ pub async fn change_password(
         message: "OK".to_string(),
     })
 }
+
+#[put("/embed", data = "<payload>")]
+pub async fn edit_embed_config(
+    payload: Json<EditEmbedConfigPayload>,
+    user: User,
+    client: &State<Client>,
+) -> Json<ErrorResponse> {
+    let new_title = &payload.title;
+    let new_color = &payload.color;
+
+    if new_color.is_none() && new_title.is_none() {
+        return Json(ErrorResponse {
+            status: 400,
+            message: "Bad Request".to_string(),
+        });
+    }
+
+    if new_color.is_some() {
+        if !verify_hex_color(new_color.clone().unwrap().as_str()) {
+            return Json(ErrorResponse {
+                status: 400,
+                message: "Bad Request".to_string(),
+            });
+        }
+
+        let result = client
+            .query(
+                "UPDATE embed_config SET color = $1 WHERE userid = $2",
+                &[&new_color.clone().unwrap(), &user.id],
+            )
+            .await;
+
+        if result.is_err() {
+            return Json(ErrorResponse {
+                status: 500,
+                message: "Internal Server Error".to_string(),
+            });
+        }
+    }
+
+    if new_title.is_some() {
+        let result = client
+            .query(
+                "UPDATE embed_config SET title = $1 WHERE userid = $2",
+                &[&new_title.clone().unwrap(), &user.id],
+            )
+            .await;
+
+        if result.is_err() {
+            return Json(ErrorResponse {
+                status: 500,
+                message: "Internal Server Error".to_string(),
+            });
+        }
+    }
+
+    Json(ErrorResponse {
+        status: 200,
+        message: "OK".to_string(),
+    })
+}
+

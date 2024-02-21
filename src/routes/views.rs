@@ -38,6 +38,24 @@ pub async fn get_file_in_html<'r>(
 
     let author = get_user_via_id(&uid, client).await;
 
+    let embed_config_result = client
+        .query(
+            "SELECT * FROM embed_config WHERE userid = $1",
+            &[&author.id],
+        )
+        .await;
+
+    if embed_config_result.is_err() {
+        return Err(Status::InternalServerError);
+    }
+
+    let embed_config_result = embed_config_result.unwrap();
+
+    println!("{:?}", embed_config_result);
+
+    let color: String = embed_config_result[0].get("color");
+    let title: String = embed_config_result[0].get("title");
+
     let mut file_url = format_upload_url(id);
 
     println!("{:?}  {:?}", vt, file_url);
@@ -53,7 +71,9 @@ pub async fn get_file_in_html<'r>(
                 "fileid": id,
                 "username": author.username,
                 "fileurl": file_url,
-                "plain_fileurl": file_url
+                "plain_fileurl": file_url,
+                "color": color,
+                "title": title,
             }),
         )
         .unwrap();
