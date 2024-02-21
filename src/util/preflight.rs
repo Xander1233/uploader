@@ -186,6 +186,7 @@ pub async fn preflight(client: &Client, settings: &Settings) {
         userid text PRIMARY KEY, \
         title text DEFAULT 'SparkCloud File-CDN', \
         color text DEFAULT '#4b90e7', \
+        background_color text DEFAULT '#f5f5f5', \
         CONSTRAINT fk_userid \
             FOREIGN KEY (userid) \
                 REFERENCES users(id) ON DELETE CASCADE \

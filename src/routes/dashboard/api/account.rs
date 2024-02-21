@@ -5,12 +5,12 @@ use crate::models::auth::payloads::{
 };
 use crate::util::errors::ErrorResponse;
 use crate::util::string_generator::generate_id;
+use crate::util::verify_hex_color::verify_hex_color;
 use bcrypt::{hash, verify};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
 use tokio_postgres::Client;
-use crate::util::verify_hex_color::verify_hex_color;
 
 #[get("/profile")]
 pub async fn get_profile(user: User) -> Option<Json<ProfileReturnPayload>> {
@@ -180,8 +180,9 @@ pub async fn edit_embed_config(
 ) -> Json<ErrorResponse> {
     let new_title = &payload.title;
     let new_color = &payload.color;
+    let new_background_color = &payload.background_color;
 
-    if new_color.is_none() && new_title.is_none() {
+    if new_color.is_none() && new_title.is_none() && new_background_color.is_none() {
         return Json(ErrorResponse {
             status: 400,
             message: "Bad Request".to_string(),
@@ -200,6 +201,29 @@ pub async fn edit_embed_config(
             .query(
                 "UPDATE embed_config SET color = $1 WHERE userid = $2",
                 &[&new_color.clone().unwrap(), &user.id],
+            )
+            .await;
+
+        if result.is_err() {
+            return Json(ErrorResponse {
+                status: 500,
+                message: "Internal Server Error".to_string(),
+            });
+        }
+    }
+
+    if new_background_color.is_some() {
+        if !verify_hex_color(new_background_color.clone().unwrap().as_str()) {
+            return Json(ErrorResponse {
+                status: 400,
+                message: "Bad Request".to_string(),
+            });
+        }
+
+        let result = client
+            .query(
+                "UPDATE embed_config SET background_color = $1 WHERE userid = $2",
+                &[&new_background_color.clone().unwrap(), &user.id],
             )
             .await;
 
@@ -232,4 +256,3 @@ pub async fn edit_embed_config(
         message: "OK".to_string(),
     })
 }
-

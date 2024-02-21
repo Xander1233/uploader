@@ -27,6 +27,7 @@ pub struct EditAccountPayload {
 pub struct EditEmbedConfigPayload {
     pub title: Option<String>,
     pub color: Option<String>,
+    pub background_color: Option<String>,
 }
 
 #[derive(Deserialize)]

@@ -8,7 +8,9 @@ mod util;
 
 use crate::email::notification_manager::NotificationManager;
 use crate::routes::auth::check_auth;
-use crate::routes::dashboard::api::account::{change_password, create_account, get_profile};
+use crate::routes::dashboard::api::account::{
+    change_password, create_account, edit_embed_config, get_profile,
+};
 use crate::routes::dashboard::api::upload_tokens::{
     create_upload_token, delete_upload_token, get_upload_tokens, regenerate_upload_token,
 };
@@ -71,7 +73,13 @@ async fn main() -> Result<(), Error> {
         .mount("/public", FileServer::from("assets"))
         .mount(
             "/api/account",
-            routes![create_account, edit_account, change_password, get_profile],
+            routes![
+                create_account,
+                edit_account,
+                change_password,
+                get_profile,
+                edit_embed_config
+            ],
         )
         .mount("/api/view", routes![create_view_token])
         .attach(AdHoc::try_on_ignite(
