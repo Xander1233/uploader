@@ -55,6 +55,7 @@ pub async fn get_file_in_html<'r>(
 
     let color: String = embed_config_result[0].get("color");
     let title: String = embed_config_result[0].get("title");
+    let background_color: String = embed_config_result[0].get("background_color");
 
     let mut file_url = format_upload_url(id);
 
@@ -74,6 +75,7 @@ pub async fn get_file_in_html<'r>(
                 "plain_fileurl": file_url,
                 "color": color,
                 "title": title,
+                "background_color": background_color,
             }),
         )
         .unwrap();
