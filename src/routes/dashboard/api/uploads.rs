@@ -184,8 +184,6 @@ pub async fn get_file(
         return Err(Status::NotFound);
     }
 
-    println!("{} {}", current_user_id, author_uid);
-
     if current_user_id != author_uid {
         let _ = client
             .query(
