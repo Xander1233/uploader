@@ -51,15 +51,11 @@ pub async fn get_file_in_html<'r>(
 
     let embed_config_result = embed_config_result.unwrap();
 
-    println!("{:?}", embed_config_result);
-
     let color: String = embed_config_result[0].get("color");
     let title: String = embed_config_result[0].get("title");
     let background_color: String = embed_config_result[0].get("background_color");
 
     let mut file_url = format_upload_url(id);
-
-    println!("{:?}  {:?}", vt, file_url);
 
     if vt.is_some() {
         file_url = file_url + "?vt=" + &vt.unwrap();

@@ -130,7 +130,7 @@ pub async fn get_file(
     let mimetype: String = rows[0].get("filetype");
     let bytes: Vec<u8> = rows[0].get("data");
     let is_private: bool = rows[0].get("is_private");
-    let uid: String = rows[0].get("userid");
+    let author_uid: String = rows[0].get("userid");
     let password: String = rows[0].get("password");
 
     if !password.is_empty() {
@@ -180,15 +180,24 @@ pub async fn get_file(
         user.unwrap().id
     };
 
-    if is_private && current_user_id != uid {
+    if is_private && current_user_id != author_uid {
         return Err(Status::NotFound);
     }
 
-    if current_user_id != uid {
+    println!("{} {}", current_user_id, author_uid);
+
+    if current_user_id != author_uid {
         let _ = client
             .query(
                 "UPDATE users SET total_views = total_views + 1 WHERE id = $1",
-                &[&uid],
+                &[&author_uid],
+            )
+            .await;
+
+        let _ = client
+            .query(
+                "UPDATE metadata SET views = views + 1 WHERE id = $1",
+                &[&id],
             )
             .await;
     }
