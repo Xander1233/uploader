@@ -27,6 +27,7 @@ use crate::{
     util::{errors::default_catch, initialize_handlebars::init_handlebars, preflight::preflight},
 };
 
+use rocket::http::Header;
 use rocket::{fairing::AdHoc, fs::FileServer};
 use tokio_postgres::Error;
 
@@ -97,6 +98,20 @@ async fn main() -> Result<(), Error> {
         .attach(AdHoc::try_on_ignite(
             "NotificationManager",
             |rocket| async { Ok(rocket.manage(notification_manager)) },
+        ))
+        .attach(AdHoc::on_response(
+            "Add CORS headers to response",
+            |_, response| {
+                Box::pin(async move {
+                    response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+                    response.set_header(Header::new(
+                        "Access-Control-Allow-Methods",
+                        "POST, GET, PATCH, OPTIONS",
+                    ));
+                    response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+                    response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+                })
+            },
         ))
         .launch()
         .await;
