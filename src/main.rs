@@ -40,7 +40,13 @@ extern crate chrono;
 
 #[rocket::main]
 async fn main() -> Result<(), Error> {
-    let settings = Settings::new().unwrap();
+    let mut settings = Settings::new().unwrap();
+
+    if settings.general.is_prod {
+        settings.database.dbname = format!("{}{}", settings.database.dbname, "-PROD")
+    }
+
+    let settings = settings;
 
     let hbs = init_handlebars().await;
 
