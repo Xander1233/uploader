@@ -13,6 +13,7 @@ pub struct RegisterPayload {
 #[serde(crate = "rocket::serde")]
 pub struct CreateUserReturnPayload {
     pub id: String,
+    pub stripe_id: String,
 }
 
 #[derive(Deserialize)]
@@ -26,6 +27,7 @@ pub struct EditAccountPayload {
 #[serde(crate = "rocket::serde")]
 pub struct EditEmbedConfigPayload {
     pub title: Option<String>,
+    pub web_title: Option<String>,
     pub color: Option<String>,
     pub background_color: Option<String>,
 }

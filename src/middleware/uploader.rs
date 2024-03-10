@@ -1,3 +1,4 @@
+use crate::util::priceid_map::{priceid_mapping, Tiers};
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use rocket::Request;
@@ -8,14 +9,17 @@ pub struct User {
     pub id: String,
     pub auth: Option<String>,
     pub username: String,
+    pub permission_level: i32,
     pub display_name: String,
     pub email: String,
-    pub permission_level: i32,
     pub total_views: i32,
     pub total_uploads: i32,
+    pub total_private_uploads: i32,
+    pub total_password_protected_uploads: i32,
     pub storage_used: i32,
-    pub max_storage: i32,
     pub ip: Option<IpAddr>,
+    pub stripe_id: Option<String>,
+    pub current_tier: Option<Tiers>,
 }
 
 #[derive(Debug)]
@@ -60,7 +64,24 @@ impl<'r> FromRequest<'r> for Uploader {
 
         let rows = client
             .query(
-                "SELECT u.id userid, u.username username, u.display_name display_name, u.email email, u.permission_level permission_level, u.total_views total_views, u.total_uploads total_uploads, u.storage_used storage_used, u.max_storage max_storage, t.id token_id, t.name token_name, t.description token_description, t.max_uses token_max_uses, t.uses token_uses FROM upload_tokens t LEFT JOIN users u ON u.id = t.userid WHERE t.token = $1",
+                "SELECT \
+                u.id userid, \
+                u.username username, \
+                u.display_name display_name, \
+                u.email email, \
+                u.permission_level permission_level, \
+                u.total_views total_views, \
+                u.total_uploads total_uploads, \
+                u.storage_used storage_used, \
+                u.total_private_uploads total_private_uploads, \
+                u.total_password_protected_uploads total_password_protected_uploads, \
+                u.stripe_id stripe_id, \
+                u.current_tier current_tier, \
+                t.id token_id, t.name token_name, \
+                t.description token_description, \
+                t.max_uses token_max_uses, \
+                t.uses token_uses \
+                FROM upload_tokens t LEFT JOIN users u ON u.id = t.userid WHERE t.token = $1",
                 &[&auth_header],
             )
             .await;
@@ -79,15 +100,23 @@ impl<'r> FromRequest<'r> for Uploader {
             ));
         }
 
-        let userid: String = rows[0].get("userid");
+        let id: String = rows[0].get("userid");
         let username: String = rows[0].get("username");
         let display_name: String = rows[0].get("display_name");
         let email: String = rows[0].get("email");
         let permission_level: i32 = rows[0].get("permission_level");
         let total_views: i32 = rows[0].get("total_views");
         let total_uploads: i32 = rows[0].get("total_uploads");
+        let total_private_uploads: i32 = rows[0].get("total_private_uploads");
+
+        println!("{}", total_private_uploads);
+
+        let total_password_protected_uploads: i32 = rows[0].get("total_password_protected_uploads");
         let storage_used: i32 = rows[0].get("storage_used");
-        let max_storage: i32 = rows[0].get("max_storage");
+        let stripe_id: Option<String> = rows[0].get("stripe_id");
+        let current_tier: Option<String> = rows[0].get("current_tier");
+
+        let current_tier = priceid_mapping(current_tier);
 
         let token_id: String = rows[0].get("token_id");
         let token_name: String = rows[0].get("token_name");
@@ -99,7 +128,7 @@ impl<'r> FromRequest<'r> for Uploader {
 
         Outcome::Success(Uploader {
             user: User {
-                id: userid,
+                id,
                 auth: None,
                 username,
                 display_name,
@@ -107,9 +136,12 @@ impl<'r> FromRequest<'r> for Uploader {
                 permission_level,
                 total_views,
                 total_uploads,
+                total_private_uploads,
+                total_password_protected_uploads,
                 storage_used,
-                max_storage,
                 ip,
+                stripe_id,
+                current_tier,
             },
             upload_token: UploadToken {
                 id: token_id,

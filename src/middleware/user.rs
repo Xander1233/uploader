@@ -1,3 +1,4 @@
+use crate::util::priceid_map::{priceid_mapping, Tiers};
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use rocket::{Request, State};
@@ -13,9 +14,12 @@ pub struct User {
     pub email: String,
     pub total_views: i32,
     pub total_uploads: i32,
+    pub total_private_uploads: i32,
+    pub total_password_protected_uploads: i32,
     pub storage_used: i32,
-    pub max_storage: i32,
     pub ip: Option<IpAddr>,
+    pub stripe_id: Option<String>,
+    pub current_tier: Option<Tiers>,
 }
 
 #[rocket::async_trait]
@@ -61,8 +65,13 @@ impl<'r> FromRequest<'r> for User {
         let permission_level: i32 = rows[0].get("permission_level");
         let total_views: i32 = rows[0].get("total_views");
         let total_uploads: i32 = rows[0].get("total_uploads");
+        let total_private_uploads: i32 = rows[0].get("total_private_uploads");
+        let total_password_protected_uploads: i32 = rows[0].get("total_password_protected_uploads");
         let storage_used: i32 = rows[0].get("storage_used");
-        let max_storage: i32 = rows[0].get("max_storage");
+        let stripe_id: Option<String> = rows[0].get("stripe_id");
+        let current_tier: Option<String> = rows[0].get("current_tier");
+
+        let current_tier = priceid_mapping(current_tier);
 
         let ip = request.client_ip();
 
@@ -75,9 +84,12 @@ impl<'r> FromRequest<'r> for User {
             permission_level,
             total_views,
             total_uploads,
+            total_private_uploads,
+            total_password_protected_uploads,
             storage_used,
-            max_storage,
             ip,
+            stripe_id,
+            current_tier,
         })
     }
 }
@@ -96,7 +108,6 @@ pub async fn get_user_via_id(id: &str, client: &State<tokio_postgres::Client>) -
     let total_views: i32 = rows[0].get("total_views");
     let total_uploads: i32 = rows[0].get("total_uploads");
     let storage_used: i32 = rows[0].get("storage_used");
-    let max_storage: i32 = rows[0].get("max_storage");
 
     User {
         id,
@@ -107,8 +118,11 @@ pub async fn get_user_via_id(id: &str, client: &State<tokio_postgres::Client>) -
         permission_level,
         total_views,
         total_uploads,
+        total_private_uploads: 0,
+        total_password_protected_uploads: 0,
         storage_used,
-        max_storage,
         ip: None,
+        stripe_id: None,
+        current_tier: None,
     }
 }

@@ -31,11 +31,18 @@ pub struct GeneralSettings {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct StripeSettings {
+    pub publishable_key: String,
+    pub secret_key: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Settings {
     pub database: Database,
     pub email: Email,
     pub general: GeneralSettings,
+    pub stripe: StripeSettings,
 }
 
 impl Settings {

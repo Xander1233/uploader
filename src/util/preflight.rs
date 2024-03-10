@@ -35,6 +35,10 @@ pub async fn preflight(client: &Client, settings: &Settings) {
             .query("DROP TABLE IF EXISTS upload_token_uses CASCADE", &[])
             .await
             .unwrap();
+        client
+            .query("DROP TABLE IF EXISTS embed_config CASCADE", &[])
+            .await
+            .unwrap();
     }
 
     client
@@ -46,10 +50,13 @@ pub async fn preflight(client: &Client, settings: &Settings) {
         permission_level int NOT NULL DEFAULT 0, \
         display_name text NOT NULL, \
         email text NOT NULL, \
+        stripe_id text DEFAULT '', \
+        current_tier text DEFAULT 'price_1Ori8qEbfEExjZVcPTUzocfV', \
         total_views int NOT NULL DEFAULT 0, \
         total_uploads int NOT NULL DEFAULT 0, \
+        total_private_uploads int NOT NULL DEFAULT 0, \
+        total_password_protected_uploads int NOT NULL DEFAULT 0, \
         storage_used int NOT NULL DEFAULT 0, \
-        max_storage int NOT NULL DEFAULT 1000000000, \
         created_at TIMESTAMP NOT NULL DEFAULT NOW() \
     )",
             &[],
@@ -185,6 +192,7 @@ pub async fn preflight(client: &Client, settings: &Settings) {
             "CREATE TABLE IF NOT EXISTS embed_config ( \
         userid text PRIMARY KEY, \
         title text DEFAULT 'SparkCloud File-CDN', \
+        web_title text DEFAULT 'SparkCloud File-CDN', \
         color text DEFAULT '#4b90e7', \
         background_color text DEFAULT '#f5f5f5', \
         CONSTRAINT fk_userid \

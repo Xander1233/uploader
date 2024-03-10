@@ -4,12 +4,14 @@ use crate::models::auth::payloads::{
     ProfileReturnPayload, RegisterPayload,
 };
 use crate::util::errors::ErrorResponse;
+use crate::util::priceid_map::Tiers;
 use crate::util::string_generator::generate_id;
 use crate::util::verify_hex_color::verify_hex_color;
 use bcrypt::{hash, verify};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
+use tokio_postgres::types::ToSql;
 use tokio_postgres::Client;
 
 #[get("/profile")]
@@ -31,6 +33,7 @@ pub async fn get_profile(user: User) -> Option<Json<ProfileReturnPayload>> {
 pub async fn create_account(
     payload: Json<RegisterPayload>,
     client: &State<Client>,
+    stripe_client: &State<stripe::Client>,
 ) -> Result<Json<CreateUserReturnPayload>, Status> {
     let username = &payload.username;
     let password = &payload.password;
@@ -77,7 +80,35 @@ pub async fn create_account(
         return Err(Status::InternalServerError);
     }
 
-    Ok(Json(CreateUserReturnPayload { id: id.clone() }))
+    let stripe_customer = stripe::Customer::create(
+        stripe_client.inner(),
+        stripe::CreateCustomer {
+            name: Some(display_name),
+            email: Some(email),
+            description: Some("Customer created via API/dashboard"),
+            metadata: Some(std::collections::HashMap::from([(
+                String::from("uid"),
+                id.clone(),
+            )])),
+
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let result = client
+        .query(
+            "UPDATE users SET stripe_id = $1 WHERE id = $2",
+            &[&stripe_customer.id.as_str(), &id],
+        )
+        .await
+        .unwrap();
+
+    Ok(Json(CreateUserReturnPayload {
+        id: id.clone(),
+        stripe_id: stripe_customer.id.to_string(),
+    }))
 }
 
 #[put("/edit", data = "<payload>")]
@@ -178,11 +209,32 @@ pub async fn edit_embed_config(
     user: User,
     client: &State<Client>,
 ) -> Json<ErrorResponse> {
+    if user.current_tier.is_none() {
+        return Json(ErrorResponse {
+            status: 403,
+            message: "Forbidden".to_string(),
+        });
+    }
+
+    let tier = user.current_tier.unwrap() as i32;
+
+    if tier < 1 {
+        return Json(ErrorResponse {
+            status: 403,
+            message: "Forbidden".to_string(),
+        });
+    }
+
     let new_title = &payload.title;
+    let new_web_title = &payload.web_title;
     let new_color = &payload.color;
     let new_background_color = &payload.background_color;
 
-    if new_color.is_none() && new_title.is_none() && new_background_color.is_none() {
+    if new_color.is_none()
+        && new_title.is_none()
+        && new_background_color.is_none()
+        && new_web_title.is_none()
+    {
         return Json(ErrorResponse {
             status: 400,
             message: "Bad Request".to_string(),
@@ -235,11 +287,27 @@ pub async fn edit_embed_config(
         }
     }
 
-    if new_title.is_some() {
+    if new_title.is_some() && tier > 2 {
         let result = client
             .query(
                 "UPDATE embed_config SET title = $1 WHERE userid = $2",
                 &[&new_title.clone().unwrap(), &user.id],
+            )
+            .await;
+
+        if result.is_err() {
+            return Json(ErrorResponse {
+                status: 500,
+                message: "Internal Server Error".to_string(),
+            });
+        }
+    }
+
+    if new_web_title.is_some() && tier > 2 {
+        let result = client
+            .query(
+                "UPDATE embed_config SET web_title = $1 WHERE userid = $2",
+                &[&new_web_title.clone().unwrap(), &user.id],
             )
             .await;
 

@@ -27,12 +27,16 @@ use crate::{
     util::{errors::default_catch, initialize_handlebars::init_handlebars, preflight::preflight},
 };
 
+use crate::routes::billing::api::list_subscriptions;
+use crate::routes::stripe::stripe::{subscribe, webhook};
 use rocket::http::Header;
 use rocket::{fairing::AdHoc, fs::FileServer};
 use tokio_postgres::Error;
 
 #[macro_use]
 extern crate rocket;
+
+extern crate chrono;
 
 #[rocket::main]
 async fn main() -> Result<(), Error> {
@@ -53,6 +57,8 @@ async fn main() -> Result<(), Error> {
     preflight(&pg_client, &settings).await;
 
     let notification_manager = NotificationManager::new(settings.clone());
+
+    let stripe_client = stripe::Client::new(settings.stripe.secret_key.clone());
 
     let _rocket = rocket::build()
         .register("/", catchers![default_catch])
@@ -83,6 +89,10 @@ async fn main() -> Result<(), Error> {
             ],
         )
         .mount("/api/view", routes![create_view_token])
+        .mount(
+            "/api/billing",
+            routes![subscribe, list_subscriptions, webhook],
+        )
         .attach(AdHoc::try_on_ignite(
             "Settings Configuration",
             |rocket| async { Ok(rocket.manage(settings)) },
@@ -99,6 +109,9 @@ async fn main() -> Result<(), Error> {
             "NotificationManager",
             |rocket| async { Ok(rocket.manage(notification_manager)) },
         ))
+        .attach(AdHoc::try_on_ignite("Stripe Client", |rocket| async {
+            Ok(rocket.manage(stripe_client))
+        }))
         .attach(AdHoc::on_response(
             "Add CORS headers to response",
             |_, response| {
