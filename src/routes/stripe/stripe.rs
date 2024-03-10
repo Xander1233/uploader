@@ -1,3 +1,4 @@
+use crate::config::settings::Settings;
 use crate::middleware::stripe_event_payload::{StripeSignature, WebhookEventPayload};
 use crate::middleware::user::User;
 use crate::models::stripe::payloads::CreateSubscriptionPayload;
@@ -58,11 +59,12 @@ pub async fn webhook(
     payload: WebhookEventPayload,
     stripe_client: &State<stripe::Client>,
     client: &State<Client>,
+    settings: &State<Settings>,
 ) -> Status {
     if let Ok(event) = Webhook::construct_event(
         &payload.contents,
         stripe_signature.signature,
-        "whsec_d760c240f4a21664dde01986c9472bce67c35732032d3cba3e5157cb9cad8a8c",
+        settings.stripe.webhook_signature_secret.as_str(),
     ) {
         println!("{:?}", event.type_);
 

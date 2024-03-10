@@ -34,6 +34,7 @@ pub struct GeneralSettings {
 pub struct StripeSettings {
     pub publishable_key: String,
     pub secret_key: String,
+    pub webhook_signature_secret: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
