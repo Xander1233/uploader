@@ -315,7 +315,7 @@ fn validate_upload_uses<'a>(
         Tiers::BusinessYearly => return check_business(user, size, &upload_type),
     };
 
-    Ok(true)
+    Err("Failed to validate current tier")
 }
 
 fn check_base<'a>(
