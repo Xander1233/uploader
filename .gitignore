@@ -5,3 +5,4 @@ target/
 config/
 !/src/config/
 /Rocket.toml
+compose.yml
