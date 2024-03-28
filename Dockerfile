@@ -24,6 +24,7 @@ COPY --from=builder /app/target/release/uploader uploader
 
 COPY ./assets ./assets
 COPY ./views ./views
+COPY ./frontend ./frontend
 
 ENV APP_ENVIRONMENT=production
 
