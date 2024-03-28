@@ -1,3 +1,4 @@
+use crate::feature_flags::feature_flags::FeatureFlagController;
 use crate::middleware::user::User;
 use crate::models::auth::payloads::{
     ChangePasswordPayload, CreateUserReturnPayload, EditAccountPayload, EditEmbedConfigPayload,
@@ -37,6 +38,13 @@ pub async fn create_account(
     client: &State<Client>,
     stripe_client: &State<stripe::Client>,
 ) -> Result<Json<CreateUserReturnPayload>, Status> {
+    let feature_flags = FeatureFlagController::new(client).await;
+    let feature = feature_flags.get_feature_flag("registration");
+
+    if feature.is_none() || !feature.unwrap().enabled {
+        return Err(Status::ServiceUnavailable);
+    }
+
     let username = &payload.username;
     let password = &payload.password;
     let email = &payload.email;

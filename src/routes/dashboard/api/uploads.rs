@@ -1,3 +1,4 @@
+use crate::feature_flags::feature_flags::FeatureFlagController;
 use crate::middleware::ip::Ip;
 use crate::middleware::uploader::Uploader;
 use crate::middleware::user::User;
@@ -23,6 +24,13 @@ pub async fn upload(
     uploader: Uploader,
     client: &State<tokio_postgres::Client>,
 ) -> Result<Json<FileUploadReturnPayload>, Status> {
+    let feature_flags = FeatureFlagController::new(client).await;
+    let feature = feature_flags.get_feature_flag("upload");
+
+    if feature.is_none() || !feature.unwrap().enabled {
+        return Err(Status::ServiceUnavailable);
+    }
+
     if uploader.upload_token.max_uses.is_some()
         && uploader.upload_token.uses + 1 > uploader.upload_token.max_uses.unwrap()
     {

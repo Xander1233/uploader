@@ -1,4 +1,5 @@
 use crate::config::settings::Settings;
+use crate::feature_flags::feature_flags::FeatureFlagController;
 use crate::middleware::stripe_event_payload::{StripeSignature, WebhookEventPayload};
 use crate::middleware::user::User;
 use crate::models::stripe::payloads::{CreateSubscriptionPayload, CreateSubscriptionReturnPayload};
@@ -26,8 +27,16 @@ pub async fn subscribe(
     metadata: Json<CreateSubscriptionPayload>,
     user: User,
     stripe_client: &State<stripe::Client>,
+    client: &State<Client>,
     settings: &State<Settings>,
 ) -> Result<Json<CreateSubscriptionReturnPayload>, Status> {
+    let feature_flags = FeatureFlagController::new(client).await;
+    let feature = feature_flags.get_feature_flag("subscription");
+
+    if feature.is_none() || !feature.unwrap().enabled {
+        return Err(Status::ServiceUnavailable);
+    }
+
     let price = &metadata.price;
 
     if user.stripe_id.is_none() {

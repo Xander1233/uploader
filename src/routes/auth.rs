@@ -1,6 +1,7 @@
 use crate::middleware::user::User;
 use crate::util::string_generator::{generate_auth_token, generate_id};
 
+use crate::feature_flags::feature_flags::FeatureFlagController;
 use crate::models::auth::payloads::{LoginCredentials, LoginReturnPayload};
 use bcrypt::verify;
 use rocket::http::Status;
@@ -13,6 +14,13 @@ pub async fn login(
     credentials: Json<LoginCredentials>,
     client: &State<Client>,
 ) -> Result<Json<LoginReturnPayload>, Status> {
+    let feature_flags = FeatureFlagController::new(client).await;
+    let feature = feature_flags.get_feature_flag("login");
+
+    if feature.is_none() || !feature.unwrap().enabled {
+        return Err(Status::ServiceUnavailable);
+    }
+
     let username = &credentials.username;
     let password = &credentials.password;
 

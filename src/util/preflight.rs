@@ -203,4 +203,17 @@ pub async fn preflight(client: &Client, settings: &Settings) {
         )
         .await
         .unwrap();
+
+    client
+        .query(
+            "CREATE TABLE IF NOT EXISTS feature_flags (\
+        feature text PRIMARY KEY, \
+        enabled boolean NOT NULL DEFAULT false, \
+        update_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), \
+        updated_by text NOT NULL DEFAULT 'system' \
+        )",
+            &[],
+        )
+        .await
+        .unwrap();
 }

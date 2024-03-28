@@ -1,6 +1,7 @@
 mod config;
 mod database;
 mod email;
+mod feature_flags;
 mod middleware;
 mod models;
 mod routes;
@@ -25,7 +26,7 @@ use crate::{
         dashboard::api::account::edit_account,
         views::get_file_in_html,
     },
-    util::{errors::default_catch, initialize_handlebars::init_handlebars, preflight::preflight},
+    util::{initialize_handlebars::init_handlebars, preflight::preflight},
 };
 
 use crate::routes::billing::api::list_subscriptions;

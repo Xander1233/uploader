@@ -1,3 +1,4 @@
+use crate::feature_flags::feature_flags::FeatureFlagController;
 use crate::middleware::user::User;
 use crate::models::tokens::upload_tokens::{
     CreateUploadTokenPayload, CreateUploadTokenReturnPayload, DetailedUploadToken,
@@ -17,6 +18,13 @@ pub async fn create_upload_token(
     user: User,
     client: &State<Client>,
 ) -> Result<Json<CreateUploadTokenReturnPayload>, Status> {
+    let feature_flags = FeatureFlagController::new(client).await;
+    let feature = feature_flags.get_feature_flag("upload_tokens");
+
+    if feature.is_none() || !feature.unwrap().enabled {
+        return Err(Status::ServiceUnavailable);
+    }
+
     let name = &data.name;
     let description = data.description.clone().unwrap_or("".to_string());
     let max_uses = &data.max_uses;
