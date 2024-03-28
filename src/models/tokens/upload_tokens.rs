@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -40,5 +41,28 @@ pub struct UploadTokens {
     pub token_id: String,
     pub name: String,
     pub description: Option<String>,
-    pub max_uses: Option<u32>,
+    pub max_uses: Option<i32>,
+    pub uses: Option<i32>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct DetailedUploadToken {
+    pub token_id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub max_uses: Option<i32>,
+    pub uses: Option<i32>,
+    pub created_at: DateTime<Utc>,
+    pub uses_arr: Vec<UploadTokenUsage>,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct UploadTokenUsage {
+    pub id: String,
+    pub file_id: String,
+    pub token_id: String,
+    pub created_at: DateTime<Utc>,
 }

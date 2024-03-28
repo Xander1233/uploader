@@ -1,7 +1,8 @@
 use crate::config::settings::Settings;
 use crate::middleware::stripe_event_payload::{StripeSignature, WebhookEventPayload};
 use crate::middleware::user::User;
-use crate::models::stripe::payloads::CreateSubscriptionPayload;
+use crate::models::stripe::payloads::{CreateSubscriptionPayload, CreateSubscriptionReturnPayload};
+use crate::util::format_upload_url::format_upload_url;
 use crate::util::priceid_map::{priceid_mapping, Tiers};
 use chrono::{DateTime, Utc};
 use rocket::http::Status;
@@ -25,7 +26,8 @@ pub async fn subscribe(
     metadata: Json<CreateSubscriptionPayload>,
     user: User,
     stripe_client: &State<stripe::Client>,
-) -> Result<Redirect, Status> {
+    settings: &State<Settings>,
+) -> Result<Json<CreateSubscriptionReturnPayload>, Status> {
     let price = &metadata.price;
 
     if user.stripe_id.is_none() {
@@ -33,9 +35,12 @@ pub async fn subscribe(
     }
 
     let checkout_session = {
+        let success_url = format!("{}/subscribe/success", settings.general.base_url);
+        let cancel_url = format!("{}/subscribe/cancel", settings.general.base_url);
+
         let mut params = CreateCheckoutSession::new();
-        params.success_url = Some("http://localhost:8000");
-        params.cancel_url = Some("http://localhost:8000/cancel");
+        params.success_url = Some(success_url.as_str());
+        params.cancel_url = Some(cancel_url.as_str());
         params.customer = Some(user.stripe_id.unwrap().parse().unwrap());
         params.mode = Some(CheckoutSessionMode::Subscription);
         params.line_items = Some(vec![CreateCheckoutSessionLineItems {
@@ -50,7 +55,9 @@ pub async fn subscribe(
             .unwrap()
     };
 
-    Ok(Redirect::to(checkout_session.url.unwrap()))
+    Ok(Json(CreateSubscriptionReturnPayload {
+        url: checkout_session.url.unwrap(),
+    }))
 }
 
 #[post("/stripe_webhook", data = "<payload>")]

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -46,6 +47,7 @@ pub struct ProfileReturnPayload {
     pub username: String,
     pub display_name: String,
     pub email: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Serialize)]

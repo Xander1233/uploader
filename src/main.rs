@@ -12,7 +12,8 @@ use crate::routes::dashboard::api::account::{
     change_password, create_account, edit_embed_config, get_profile,
 };
 use crate::routes::dashboard::api::upload_tokens::{
-    create_upload_token, delete_upload_token, get_upload_tokens, regenerate_upload_token,
+    create_upload_token, delete_upload_token, get_detailed_upload_token, get_upload_tokens,
+    regenerate_upload_token,
 };
 use crate::routes::dashboard::api::uploads::{get_all_uploads_of_current, get_file, upload};
 use crate::routes::dashboard::api::view_tokens::create_view_token;
@@ -22,13 +23,14 @@ use crate::{
     routes::{
         auth::{login, logout},
         dashboard::api::account::edit_account,
-        views::{get_file_in_html, index},
+        views::get_file_in_html,
     },
     util::{errors::default_catch, initialize_handlebars::init_handlebars, preflight::preflight},
 };
 
 use crate::routes::billing::api::list_subscriptions;
 use crate::routes::stripe::stripe::{subscribe, webhook};
+use crate::routes::views::index;
 use rocket::http::Header;
 use rocket::{fairing::AdHoc, fs::FileServer};
 use tokio_postgres::Error;
@@ -67,8 +69,8 @@ async fn main() -> Result<(), Error> {
     let stripe_client = stripe::Client::new(settings.stripe.secret_key.clone());
 
     let _rocket = rocket::build()
-        .register("/", catchers![default_catch])
-        .mount("/", routes![index, get_file_in_html])
+        .mount("/", routes![index])
+        .mount("/view", routes![get_file_in_html])
         .mount("/api/auth", routes![login, logout, check_auth])
         .mount(
             "/api/uploads",
@@ -80,10 +82,12 @@ async fn main() -> Result<(), Error> {
                 create_upload_token,
                 delete_upload_token,
                 regenerate_upload_token,
-                get_upload_tokens
+                get_upload_tokens,
+                get_detailed_upload_token
             ],
         )
-        .mount("/public", FileServer::from("assets"))
+        .mount("/public", FileServer::from("assets").rank(5))
+        .mount("/", FileServer::from("frontend").rank(6))
         .mount(
             "/api/account",
             routes![

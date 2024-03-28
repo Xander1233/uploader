@@ -20,12 +20,14 @@ pub async fn get_profile(user: User) -> Option<Json<ProfileReturnPayload>> {
     let username = user.username;
     let display_name = user.display_name;
     let email = user.email;
+    let created_at = user.created_at;
 
     Some(Json(ProfileReturnPayload {
         id,
         username,
         display_name,
         email,
+        created_at,
     }))
 }
 
@@ -48,6 +50,7 @@ pub async fn create_account(
         .await;
 
     if result.is_err() {
+        println!("{:?}", result.err().unwrap());
         return Err(Status::InternalServerError);
     }
 

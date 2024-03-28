@@ -16,6 +16,8 @@ pub async fn login(
     let username = &credentials.username;
     let password = &credentials.password;
 
+    println!("{} {}", username, password);
+
     let result = client
         .query("SELECT * FROM users WHERE username = $1", &[&username])
         .await;
@@ -25,6 +27,8 @@ pub async fn login(
     }
 
     let row = result.unwrap();
+
+    println!("{:?}", row);
 
     let hash: String = row[0].get("password");
 

@@ -8,6 +8,7 @@ use crate::util::format_upload_url::format_upload_url;
 use crate::util::priceid_map::Tiers;
 use crate::util::string_generator::generate_id;
 use bcrypt::{hash, verify};
+use chrono::{DateTime, Utc};
 use rocket::data::ToByteUnit;
 use rocket::form::Form;
 use rocket::http::{ContentType, Status};
@@ -106,6 +107,14 @@ pub async fn upload(
         .await
         .unwrap();
 
+    client
+        .query(
+            "UPDATE upload_tokens SET uses = uses + 1 WHERE id = $1",
+            &[&uploader.upload_token.id],
+        )
+        .await
+        .unwrap();
+
     let private_upload_multiplier = {
         match upload_type {
             UploadType::PRIVATE => 1,
@@ -122,7 +131,7 @@ pub async fn upload(
 
     let _ = client.query(
         "UPDATE users SET storage_used = storage_used + $1, total_uploads = total_uploads + $2, total_private_uploads = total_private_uploads + $3, total_password_protected_uploads = total_password_protected_uploads + $4 WHERE id = $5",
-        &[&(size as i32), &1 as &i32, &private_upload_multiplier, &password_protected_upload_multiplier, &uploader.user.id]
+        &[&(size as i32), &1, &private_upload_multiplier, &password_protected_upload_multiplier, &uploader.user.id]
     ).await;
 
     Ok(Json(FileUploadReturnPayload {
@@ -159,58 +168,60 @@ pub async fn get_file(
     let author_uid: String = rows[0].get("userid");
     let password: String = rows[0].get("password");
 
-    if !password.is_empty() {
-        if vt.is_none() {
-            return Err(Status::Unauthorized);
-        }
-
-        let vt = vt.unwrap();
-
-        let rows = client
-            .query(
-                "SELECT * FROM view_tokens WHERE token = $1 AND fileid = $2",
-                &[&vt, &id],
-            )
-            .await;
-
-        if rows.is_err() {
-            println!("{:?}", rows.err().unwrap());
-            return Err(Status::Unauthorized);
-        }
-
-        let rows = rows.unwrap();
-
-        if rows.len() != 1 {
-            return Err(Status::Unauthorized);
-        }
-
-        let fileid: String = rows[0].get("fileid");
-
-        if fileid != id {
-            return Err(Status::Unauthorized);
-        }
-
-        let ip: String = ip.unwrap().0.to_string();
-        let db_ip: String = rows[0].get("ip");
-
-        let ip_verification = verify(ip, db_ip.as_str());
-
-        if ip_verification.is_err() || !ip_verification.unwrap() {
-            return Err(Status::Unauthorized);
-        }
-    }
-
-    let current_user_id = if user.is_none() {
-        "".to_string()
+    let current_user_id = if let Some(user) = user {
+        user.id
     } else {
-        user.unwrap().id
+        String::new()
     };
 
-    if is_private && current_user_id != author_uid {
-        return Err(Status::NotFound);
-    }
+    println!("cur id {}; author id {}", current_user_id, author_uid);
 
     if current_user_id != author_uid {
+        if is_private {
+            return Err(Status::NotFound);
+        }
+
+        if !password.is_empty() {
+            if vt.is_none() {
+                return Err(Status::Unauthorized);
+            }
+
+            let vt = vt.unwrap();
+
+            let rows = client
+                .query(
+                    "SELECT * FROM view_tokens WHERE token = $1 AND fileid = $2",
+                    &[&vt, &id],
+                )
+                .await;
+
+            if rows.is_err() {
+                println!("{:?}", rows.err().unwrap());
+                return Err(Status::Unauthorized);
+            }
+
+            let rows = rows.unwrap();
+
+            if rows.len() != 1 {
+                return Err(Status::Unauthorized);
+            }
+
+            let fileid: String = rows[0].get("fileid");
+
+            if fileid != id {
+                return Err(Status::Unauthorized);
+            }
+
+            let ip: String = ip.unwrap().0.to_string();
+            let db_ip: String = rows[0].get("ip");
+
+            let ip_verification = verify(ip, db_ip.as_str());
+
+            if ip_verification.is_err() || !ip_verification.unwrap() {
+                return Err(Status::Unauthorized);
+            }
+        }
+
         let _ = client
             .query(
                 "UPDATE users SET total_views = total_views + 1 WHERE id = $1",
@@ -248,12 +259,14 @@ pub async fn get_all_uploads_of_current(
         let id: String = row.get("id");
         let is_private: bool = row.get("is_private");
         let filetype: String = row.get("filetype");
+        let created_at: DateTime<Utc> = row.get("uploaded_at");
 
         uploads.push(Upload {
             id: id.clone(),
             url: format_upload_url(id.as_str()),
             is_private,
             filetype,
+            created_at,
         });
     }
 
@@ -305,14 +318,14 @@ fn validate_upload_uses<'a>(
                 }
             }
         }
-        Tiers::BaseMonthly => return check_base(user, size, &upload_type),
-        Tiers::BaseYearly => return check_base(user, size, &upload_type),
-        Tiers::StandardMonthly => return check_standard(user, size, &upload_type),
-        Tiers::StandardYearly => return check_standard(user, size, &upload_type),
-        Tiers::PlusMonthly => return check_plus(user, size, &upload_type),
-        Tiers::PlusYearly => return check_plus(user, size, &upload_type),
-        Tiers::BusinessMonthly => return check_business(user, size, &upload_type),
-        Tiers::BusinessYearly => return check_business(user, size, &upload_type),
+        Tiers::BaseMonthly => return check_base(user, size, upload_type),
+        Tiers::BaseYearly => return check_base(user, size, upload_type),
+        Tiers::StandardMonthly => return check_standard(user, size, upload_type),
+        Tiers::StandardYearly => return check_standard(user, size, upload_type),
+        Tiers::PlusMonthly => return check_plus(user, size, upload_type),
+        Tiers::PlusYearly => return check_plus(user, size, upload_type),
+        Tiers::BusinessMonthly => return check_business(user, size, upload_type),
+        Tiers::BusinessYearly => return check_business(user, size, upload_type),
     };
 
     Err("Failed to validate current tier")

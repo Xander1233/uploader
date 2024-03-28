@@ -1,4 +1,5 @@
 use crate::util::priceid_map::{priceid_mapping, Tiers};
+use chrono::{DateTime, Utc};
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use rocket::{Request, State};
@@ -20,6 +21,7 @@ pub struct User {
     pub ip: Option<IpAddr>,
     pub stripe_id: Option<String>,
     pub current_tier: Option<Tiers>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[rocket::async_trait]
@@ -70,6 +72,7 @@ impl<'r> FromRequest<'r> for User {
         let storage_used: i32 = rows[0].get("storage_used");
         let stripe_id: Option<String> = rows[0].get("stripe_id");
         let current_tier: Option<String> = rows[0].get("current_tier");
+        let created_at: DateTime<Utc> = rows[0].get("created_at");
 
         let current_tier = priceid_mapping(current_tier);
 
@@ -90,6 +93,7 @@ impl<'r> FromRequest<'r> for User {
             ip,
             stripe_id,
             current_tier,
+            created_at,
         })
     }
 }
@@ -108,6 +112,7 @@ pub async fn get_user_via_id(id: &str, client: &State<tokio_postgres::Client>) -
     let total_views: i32 = rows[0].get("total_views");
     let total_uploads: i32 = rows[0].get("total_uploads");
     let storage_used: i32 = rows[0].get("storage_used");
+    let created_at: DateTime<Utc> = rows[0].get("created_at");
 
     User {
         id,
@@ -124,5 +129,6 @@ pub async fn get_user_via_id(id: &str, client: &State<tokio_postgres::Client>) -
         ip: None,
         stripe_id: None,
         current_tier: None,
+        created_at,
     }
 }

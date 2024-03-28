@@ -1,6 +1,8 @@
+use rocket::fs::{relative, NamedFile};
 use rocket::http::Status;
 use rocket::serde::{json::Json, Serialize};
 use rocket::Request;
+use std::path::Path;
 
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
@@ -10,9 +12,8 @@ pub struct ErrorResponse {
 }
 
 #[catch(default)]
-pub async fn default_catch<'r>(status: Status, _request: &Request<'r>) -> Json<ErrorResponse> {
-    Json(ErrorResponse {
-        status: status.code,
-        message: status.to_string(),
-    })
+pub async fn default_catch<'r>(_: Status, _request: &Request<'r>) -> Option<NamedFile> {
+    NamedFile::open(&Path::new(relative!("frontend")).join("index.html"))
+        .await
+        .ok()
 }

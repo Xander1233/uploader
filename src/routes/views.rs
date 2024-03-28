@@ -20,10 +20,13 @@ pub async fn get_file_in_html<'r>(
         .await;
 
     if rows.is_err() {
+        println!("{:?}", rows.err().unwrap());
         return Err(Status::NotFound);
     }
 
     let rows = rows.unwrap();
+
+    println!("{:?}", rows);
 
     if rows.is_empty() {
         return Err(Status::NotFound);
@@ -79,9 +82,9 @@ pub async fn get_file_in_html<'r>(
     Ok((ContentType::HTML, rendered))
 }
 
-#[get("/")]
-pub async fn index() -> Option<NamedFile> {
-    NamedFile::open(&Path::new(relative!("views")).join("index.html"))
+#[get("/<_..>", rank = 25)]
+pub async fn index<'r>() -> Option<NamedFile> {
+    NamedFile::open(&Path::new(relative!("frontend")).join("index.html"))
         .await
         .ok()
 }

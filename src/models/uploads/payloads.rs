@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use rocket::form::FromForm;
 use rocket::fs::TempFile;
 use rocket::serde::{Deserialize, Serialize};
@@ -29,4 +30,5 @@ pub struct Upload {
     pub url: String,
     pub is_private: bool,
     pub filetype: String,
+    pub created_at: DateTime<Utc>,
 }

@@ -1,9 +1,11 @@
 use crate::middleware::user::User;
 use crate::models::tokens::upload_tokens::{
-    CreateUploadTokenPayload, CreateUploadTokenReturnPayload, GetUploadTokensReturnPayload,
-    UploadTokens,
+    CreateUploadTokenPayload, CreateUploadTokenReturnPayload, DetailedUploadToken,
+    GetUploadTokensReturnPayload, UploadTokenUsage, UploadTokens,
 };
+use crate::models::uploads::payloads::Upload;
 use crate::util::string_generator::{generate_id, generate_string};
+use chrono::{DateTime, Utc};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
@@ -154,15 +156,91 @@ pub async fn get_upload_tokens(
         let token_id: String = row.get("id");
         let name: String = row.get("name");
         let description: Option<String> = row.get("description");
-        let max_uses: Option<u32> = row.get("max_uses");
+        let max_uses: Option<i32> = row.get("max_uses");
+        let uses: Option<i32> = row.get("uses");
+        let created_at: DateTime<Utc> = row.get("created_at");
 
         tokens.push(UploadTokens {
             token_id,
             name,
             description,
             max_uses,
+            uses,
+            created_at,
         });
     }
 
     Ok(Json(GetUploadTokensReturnPayload { tokens }))
+}
+
+#[get("/<token_id>")]
+pub async fn get_detailed_upload_token(
+    token_id: String,
+    user: User,
+    client: &State<Client>,
+) -> Result<Json<DetailedUploadToken>, Status> {
+    let result = client
+        .query(
+            "SELECT * FROM upload_tokens WHERE userid = $1 AND id = $2",
+            &[&user.id, &token_id],
+        )
+        .await;
+
+    if result.is_err() {
+        return Err(Status::InternalServerError);
+    }
+
+    let rows = result.unwrap();
+
+    if rows.is_empty() {
+        return Err(Status::NotFound);
+    }
+
+    let row = &rows[0];
+
+    let token_id: String = row.get("id");
+    let name: String = row.get("name");
+    let description: Option<String> = row.get("description");
+    let max_uses: Option<i32> = row.get("max_uses");
+    let uses: Option<i32> = row.get("uses");
+    let created_at: DateTime<Utc> = row.get("created_at");
+
+    let mut uses_arr = Vec::new();
+
+    let result = client
+        .query(
+            "SELECT * FROM upload_token_uses WHERE tokenid = $1",
+            &[&token_id],
+        )
+        .await;
+
+    if result.is_err() {
+        return Err(Status::InternalServerError);
+    }
+
+    let rows = result.unwrap();
+
+    for row in rows {
+        let id: String = row.get("id");
+        let token_id: String = row.get("tokenid");
+        let file_id: String = row.get("fileid");
+        let created_at: DateTime<Utc> = row.get("created_at");
+
+        uses_arr.push(UploadTokenUsage {
+            id,
+            token_id,
+            file_id,
+            created_at,
+        });
+    }
+
+    Ok(Json(DetailedUploadToken {
+        token_id,
+        name,
+        description,
+        max_uses,
+        uses,
+        created_at,
+        uses_arr,
+    }))
 }
